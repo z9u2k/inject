@@ -1,0 +1,12 @@
+- simple_component
+    Demonstrates how to declare a service interface and an implementation,
+    register them with Inject and retrieve an implementation instance for
+    the interface
+
+    - service.h declares the interface, while service.cpp registers it with
+      Inject
+    - service_impl.{h,cpp} implement that interface, and register it with inject
+    - context_config.cpp registers with Inject that service_impl is the
+      application' provider for service; and
+    - main.cpp configures the default context and requests an implementation for
+      service

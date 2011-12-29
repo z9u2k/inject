@@ -1,0 +1,7 @@
+add_subdirectory(simple_component)
+add_subdirectory(singleton)
+add_subdirectory(bind_from_file)
+add_subdirectory(ctor_inject)
+add_subdirectory(setter_inject)
+add_subdirectory(field_inject)
+add_subdirectory(custom_allocator)

@@ -1,0 +1,76 @@
+INJECT
+======
+
+Inject is intended to be a C++ dependency injection library which:
+ * is header-only
+    Library does not require anything but including its header files
+ * is non-intrusive
+    Any class can be a component. No need to inherit library interfaces, declare
+    mandatory members or include a macro in the class declaration. For a class
+    to be a component all it needs is to have its default-constructor public and
+    functioning.
+ * is macro-less
+    The library does not rely on pre-processing magic for code-generation. No
+    need to declare constructors in a special way or include black-magic macros
+    in your class' body.
+ * is declarative
+    This is similar to the non-intrusive bullet. Using a class as a component
+    is a matter of declaration, which is done separately from the class'
+    declaration, see below for examples
+ * doesn't require code-generation
+    The library relies only on the standard code generation facilities offered
+    by C++98 through the template mechanism. No additional scripts/executables
+    need to be run to get injections functionality to the application.
+ * is very simple to use
+ * fully supports allocation and instantiation through std::allocator
+ * supports up to 10 constructor arguments
+ * can inject to setter methods (two types, see examples)
+ * does not use RTTI
+ * is fully C++98 complaint
+
+BUILDING
+========
+Inject is a header-only library, which means it does not require building. Just
+include "inject/inject.h" and compile.
+
+To build the unit-tests and example code:
+- install cmake >= 2.6
+- install boost >= 1.47
+- in the top-level directory, run: 'cmake -DCMAKE_BUILD_TYPE=Debug .' or
+  '-DCMAKE_BUILD_TYPE=Release .'
+- make clean && make
+
+Unit-tests executable is under: src/tests/inject/unit_tests
+Example executable is under each example directory.
+
+COMPATIBILITY
+=============
+
+Inject was tested with:
+- g++ 4.7.1
+- clang++ 3.0-6
+- MSVC 9 and 10
+
+USAGE
+=====
+First read: docs/README for an overview of how Inject works.
+Then, See: examples/README for usage examples.
+
+OTHER C++ INJECTION LIBRARIES
+=============================
+ * dicpp (https://bitbucket.org/cheez/dicpp/)
+ * cpp-resolver (http://sourceforge.net/projects/cpp-resolver/)
+ * Torgny (http://programmaticallyspeaking.blogspot.com/2010/04/beautiful-dependency-injection-in-c.html)
+ * QtIocContainer (http://sourceforge.net/projects/qtioccontainer/)
+ * hypodermic (http://code.google.com/p/hypodermic/)
+ * sauce (https://github.com/phs/sauce)
+ * wallaroo (https://code.google.com/p/wallaroo/)
+
+LICENSE
+=======
+Copyright (c) 2012 Itay Duvdevani
+All rights reserved.
+
+Inject is distributed under the MIT OSI license. For additional info, please
+refer to: LICENSE or contact itay@duvdevani.com
+

@@ -1,0 +1,12 @@
+CMakeFiles
+Makefile
+cmake_install.cmake
+*.swp
+CMakeCache.txt
+examples/simple_component/simple_component
+examples/singleton/singleton
+examples/bind_from_file/bind_from_file
+examples/ctor_inject/ctor_inject
+examples/custom_allocator/custom_allocator
+examples/setter_inject/setter_inject
+examples/field_inject/field_inject
