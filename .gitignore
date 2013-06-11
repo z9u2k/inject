@@ -10,3 +10,5 @@ examples/ctor_inject/ctor_inject
 examples/custom_allocator/custom_allocator
 examples/setter_inject/setter_inject
 examples/field_inject/field_inject
+doxygen
+Doxyfile

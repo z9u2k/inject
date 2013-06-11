@@ -20,47 +20,35 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef __INJECT_ID_OF_H__
-#define __INJECT_ID_OF_H__
-
-#include "types.h"
+#ifndef __INJECT_ACTIVATOR_INL__
+#define __INJECT_ACTIVATOR_INL__
 
 namespace inject {
 
-/** an invalid unique id - doesn't identiify any component */
-const unique_id INVALID_ID = -1;
+template<int ID>
+template<class Allocator, class Activated>
+typename context<ID>::unknown_ptr
+context<ID>::allocator_activator<Allocator, Activated>::
+activate(unknown_ptr instance) {
+    typedef typename Allocator::template rebind<Activated>::other AL;
+    AL al;
 
-/**
- * a monotonic counter
- * @tparam T ignored, used as a workaround to avoid the need for a compiled cpp file
- * @note this class is not thread safe
- */
-template<typename T = void>
-class monotonic_counter {
-public:
-    /** @return a monotonically increasing integer */
-    static unique_id next_unique_id();
-};
+    return context<ID>::unknown_ptr(
+        al.allocate(1),
+        allocator_deleter<AL, Activated>(al));
+}
 
-/**
- * provides a way of uniquely identifying types in the system
- * @tparam T type to get id of
- *
- * Example
- * @code
- * unique_id the_id = inject::id_of<some_component>::id();
- * @endcode
- */
-template<class T>
-class id_of {
-public:
-    /** @return the unique identifier of <code>T</code> */
-    static unique_id id();
-};
+template<int ID>
+template<class Activated>
+typename context<ID>::unknown_ptr
+context<ID>::default_constructor_activator<Activated>::
+activate(unknown_ptr instance) {
+    Activated* activated = reinterpret_cast<Activated*>(instance.get());
+    new(activated) Activated();
+    return instance;
+}
 
 } // namespace inject
 
-#include "id_of.inl"
-
-#endif // __INJECT_ID_OF_H__
+#endif // __INJECT_ACTIVATOR_INL__
 

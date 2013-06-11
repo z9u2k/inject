@@ -28,40 +28,89 @@
 
 namespace inject {
 
+/**
+ * obtains the component implementing <code>T</code> from the current context.
+ * simply constructing this pointer-wrapper is enough to obtain the pointer.
+ *
+ * if you require obtaining a pointer from a specific context instance, use
+ * {@link context::instance()}.
+ * 
+ * @tparam ID context ID to obtain implementations from
+ * @tparam T component type to obtain implementations for
+ *
+ * Example:
+ * @code
+ * injected<some_service> s;
+ * s->some_service_method();
+ * @endcode
+ */
 template<int ID>
 template<class T>
 class context<ID>::injected {
 private:
     typedef typename ptr<T>::type ptr_type;
+
 private:
     ptr_type _ptr;
+
 public:
+
+    /**
+     * @throws no_component
+     * @throws no_binding
+     * @throws not_providing
+     * @throws circular_dependency
+     */
     injected() : _ptr(context<ID>::get_current().instance<T>()) { }
+
+    /** @param other copy from */
     injected(const injected<T>& other) : _ptr(other._ptr) { }
+
+    /**
+     * @param ptr pointer to wrap
+     */
     injected(const ptr_type& ptr) : _ptr(ptr) { }
 
+    /**
+     * @param other instance to assign
+     * @return reference to this
+     */
     injected<T>& operator=(const injected<T>& other) {
         _ptr = other._ptr;
         return (*this);
     }
 
+    /**
+     * @param other pointer wrapper to compare to
+     * @return whether wrapped pointer equals
+     */
     bool operator==(const injected<T>& other) {
         return _ptr == other._ptr;
     }
 
+    /**
+     * @param other pointer wrapper to compare to
+     * @return whether wrapped pointer differ
+     */
     bool operator!=(const injected<T>& other) {
         return !((*this) == other);
     }
 
+    /** @return instance pointer by wrapper pointer */
     T& operator*() const throw() { return (*_ptr); }
+
+    /** @return wrapper pointer */
     T* operator->() const throw() { return _ptr.get(); }
 
+    /** @return wrapper pointer */
     T* get() { return _ptr.get(); }
 
+    /** @return implicit cast to wrapper pointer type */
     operator ptr_type() {
         return _ptr;
     }
     
+    /** @return implicit cast to wrapper pointer type */
     operator const ptr_type() const {
         return _ptr;
     }

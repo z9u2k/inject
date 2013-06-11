@@ -33,7 +33,6 @@ enum component_scope {
     scope_singleton
 };
 
-
 } // namespace inject
 
 #endif // __INJECT_TYPES_H__

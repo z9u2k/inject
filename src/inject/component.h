@@ -38,77 +38,15 @@
 namespace inject {
 
 /**
- * TODO
- */
-template<int ID>
-template<class Allocator, class Activated>
-class context<ID>::allocator_activator : public generic_activator {
-public:
-    allocator_activator() : generic_activator() { }
-    virtual ~allocator_activator() { }
-public:
-    context<ID>::unknown_ptr activate(context<ID>::unknown_ptr instance);
-};
-
-template<int ID>
-template<class Activated>
-class context<ID>::default_constructor_activator : public generic_activator {
-public:
-    default_constructor_activator() : generic_activator() { }
-    virtual ~default_constructor_activator() { }
-public:
-    context<ID>::unknown_ptr activate(context<ID>::unknown_ptr instance);
-};
-
-/**
- * TODO
- */
-template<class Allocator, class T>
-class allocator_deleter {
-private:
-    Allocator _allocator;
-public:
-    allocator_deleter(const Allocator& allocator) throw() 
-        : _allocator(allocator) {}
-
-    allocator_deleter(const allocator_deleter& other) throw() 
-        : _allocator(other._allocator) {}
-
-    void operator()(T*& p) {
-        p->~T();
-        _allocator.deallocate(p, 1);
-        p = 0;
-    }
-};
-
-/**
- * TODO
- */
-template<int ID>
-template<class Allocator, class Activated>
-typename context<ID>::unknown_ptr
-context<ID>::allocator_activator<Allocator, Activated>::
-activate(unknown_ptr instance) {
-    typedef typename Allocator::template rebind<Activated>::other AL;
-    AL al;
-
-    return context<ID>::unknown_ptr(
-        al.allocate(1),
-        allocator_deleter<AL, Activated>(al));
-}
-
-template<int ID>
-template<class Activated>
-typename context<ID>::unknown_ptr
-context<ID>::default_constructor_activator<Activated>::
-activate(unknown_ptr instance) {
-    Activated* activated = reinterpret_cast<Activated*>(instance.get());
-    new(activated) Activated();
-    return instance;
-}
-
-/**
- * A scoped component registry entry
+ * a component describes a type in a context, which can be provided by other
+ * components, implemented by other components, injector to other components
+ * etc.
+ *
+ * a component is what the context manages. creating a component registers this
+ * type with the context, making it available for binding and instantiation.
+ *
+ * @tparam ID context ID to register to
+ * @tparam T component type. must have a default constructor.
  */
 template<int ID>
 template<class T>
@@ -118,13 +56,18 @@ class context<ID>::component {
 
 public:
 
-    /** registers an unnamed component */
+    /**
+     * registers an unnamed component with the context
+     */
     component();
 
-    /** registers a named component */
+    /**
+     * registers a named component with the context
+     * @param name component's name
+     */
     component(const std::string& name);
 
-    /** unregisters the component */
+    /** unregisters the component from the context */
     virtual ~component();
 
     /* --- classes --- */
@@ -134,26 +77,77 @@ public:
     /**
      * a scoped object, that indicated the component provides a certain
      * interface
+     *
+     * internaly, this is required for generating a "cast-provider", which is
+     * able to cast the implementing type to the interface type dynamically - an
+     * implementing type may implement many interfaces, so the context must be
+     * able to cast that instance correctly to each interface. registering a
+     * compoenent as providing an interface allows the context to prepare the
+     * casting code necessary
+     *
+     * @tparam Interface interface type provided by this component
      */
     template<class Interface>
     class provides {
     public:
+        /**
+         * registers with the context that the component provides an interface
+         */
         provides();
+
+        /**
+         * deletes provision registration from the context
+         */
         virtual ~provides();
     };
 
     /**
-     * TODO
+     * indicates an interface component can be implemented by the current
+     * component
+     *
+     * there can only be one implementing component for a certain component.
+     * conflicts are resolved so that the latest registration wins
+     *
+     * when component A is implemented using component B in some context,
+     * instantiations of A in that context will result in an instance of B
+     *
+     * @tparam Impl implementing type
+     * @tparam Scope implementation scope (default: none)
      */
     template<class Impl, component_scope Scope = scope_none>
     class implemented_by {
     public:
+        /**
+         * registers with the context that the current component is implemented
+         * by the given component
+         */
         implemented_by();
+
+        /**
+         * removed implementation registration from the context
+         * @todo restoring previous registration?
+         */
         virtual ~implemented_by();
     };
 
     /**
-     * TODO
+     * indicates that new instances of the current component should be allocated
+     * using the given allocator
+     * @tparam Allocator allocator to use for allocating new components of this
+     *         type - should behave like <code>std::allocator</code>
+     *
+     * Example:
+     * @include custom_allocator/main.cpp
+     * 
+     * Output:
+     * <pre>
+     * requesting service...
+     * allocating 1 instance(s)
+     * in: impl::impl()
+     * service name is: impl
+     * in: impl::~impl()
+     * deallocating 1 instance(s)
+     * </pre>
      */
     template<class Allocator>
     class allocator {
@@ -165,7 +159,30 @@ public:
     };
 
     /**
-     * TODO
+     * indicates the current component should be initialized with a constructor
+     * different than the default constructor. up to 10 constructor arguments
+     * can be specified in this way
+     *
+     * @tparam A1 first constructor argument
+     * @tparam A2 second constructor argument (optional)
+     * @tparam A3 third constructor argument (optional)
+     * @tparam A4 fourth constructor argument (optional)
+     * @tparam A5 fifth constructor argument (optional)
+     * @tparam A6 sixth constructor argument (optional)
+     * @tparam A7 seventh constructor argument (optional)
+     * @tparam A8 eighth constructor argument (optional)
+     * @tparam A9 ninth constructor argument (optional)
+     * @tparam A10 tenth constructor argument (optional)
+     * @todo C++11 vardiac templates could probably be used here ...
+     *
+     * Example:
+     * @include ctor_inject/main.cpp
+     *
+     * Output:
+     * <pre>
+     * with injected struct service name is 'component_impl'
+     * with test struct service name is 'test_impl'
+     * </pre>
      */
     template<
         class A1,
@@ -182,6 +199,7 @@ public:
     private:
         generic_activator* _prev;
     private:
+        /** activates the component using the correct number of arguments */
         class activator : public generic_activator {
         public:
             unknown_ptr activate(unknown_ptr instance);
@@ -280,10 +298,24 @@ public:
 
 #undef CONSTRUCTOR_SPEC_DECL
 
-    template<
-        class Interface,
-        typename ptr<Interface>::type& (T::*Setter)()
-    >
+    /**
+     * injects an interface implementation into a C++ style setter. this
+     * activator will assign the context implementation of
+     * <code>Interface</code> into the given <code>Setter</code> method.
+     *
+     * @tparam Interface interface instance assign into setter
+     * @tparam Setter setter to call
+     *
+     * Example:
+     * @include setter_inject/main.cpp
+     *
+     * Output:
+     * <pre>
+     * assigned service is 'component_impl'
+     * setter service is 'component_impl'
+     * </pre>
+     */
+    template<class Interface, typename ptr<Interface>::type& (T::*Setter)()>
     class assign_setter {
     private:
         class activator : public generic_activator {
@@ -301,10 +333,26 @@ public:
         }
     };
 
-    template<
-        class Interface,
-        void (T::*Setter)(const typename ptr<Interface>::type&)
-    >
+    /**
+     * injects an interface implementation into a Java-style roperty setter.
+     * this activator will pass the context implementation of
+     * <code>Interface</code> as the single argument of the given
+     * <code>Setter</code> method.
+     *
+     * @tparam Interface interface instance to pass as setter parameter
+     * @tparam Setter setter to call
+     *
+     * Example:
+     * @include setter_inject/main.cpp
+     *
+     * Output:
+     * <pre>
+     * assigned service is 'component_impl'
+     * setter service is 'component_impl'
+     * </pre>
+     */
+    template<class Interface,
+        void (T::*Setter)(const typename ptr<Interface>::type&)>
     class arg_setter {
     private:
         class activator : public generic_activator {
@@ -323,331 +371,8 @@ public:
     };
 };
 
-template<int ID>
-template<class T>
-context<ID>::component<T>::component() {
-    component_descriptor& desc = registry()[id_of<T>::id()];
-    desc.id = id_of<T>::id();
-}
-
-template<int ID>
-template<class T>
-context<ID>::component<T>::component(const std::string& name) {
-    component_descriptor& desc = registry()[id_of<T>::id()];
-
-    desc.id = id_of<T>::id();
-    desc.component_name = name;
-
-    registry().register_name(name, desc.id);
-}
-
-template<int ID>
-template<class T>
-context<ID>::component<T>::~component() {
-    registry().unregister(id_of<T>::id());
-}
-
-template<int ID>
-template<class T>
-template<class Interface>
-context<ID>::component<T>::provides<Interface>::provides() {
-    // register cast provider
-    component_descriptor& desc = registry()[id_of<T>::id()];
-    
-    // initialize default allocator and constructor the first time a component
-    // is declared as concrete - we can't do it in component() since the class
-    // may be abstract and we can't instantiate and construct abstract classes
-    if (desc.allocator == 0) {
-        desc.allocator = new allocator_activator< std::allocator<void>, T>();
-    }
-
-    if (desc.constructor == 0) {
-        desc.constructor = new default_constructor_activator<T>();
-    }
-
-    desc.component_cast[id_of<Interface>::id()] = 
-        new component_cast<T, Interface>();
-}
-
-template<int ID>
-template<class T>
-template<class Interface>
-context<ID>::component<T>::provides<Interface>::~provides() {
-    // TODO: remove cast provider
-}
-
-template<int ID>
-template<class T>
-template<class Impl, component_scope Scope>
-context<ID>::component<T>::implemented_by<Impl, Scope>::implemented_by() {
-    component_descriptor& desc = registry()[id_of<T>::id()];
-    desc.default_binding = binding(
-        id_of<T>::id(), id_of<Impl>::id(), Scope);
-}
-
-template<int ID>
-template<class T>
-template<class Impl, component_scope Scope>
-context<ID>::component<T>::implemented_by<Impl, Scope>::~implemented_by() {
-    // remove default binding
-    component_descriptor& desc = registry()[id_of<T>::id()];
-    desc.default_binding = binding();
-}
-
-template<int ID>
-template<class T>
-template<class Allocator>
-context<ID>::component<T>::allocator<Allocator>::allocator() {
-    component_descriptor& desc = registry()[id_of<T>::id()];
-    _prev_activator = desc.allocator;
-    desc.allocator = new allocator_activator<Allocator, T>();
-}
-
-template<int ID>
-template<class T>
-template<class Allocator>
-context<ID>::component<T>::allocator<Allocator>::~allocator() {
-    component_descriptor& desc = registry()[id_of<T>::id()];
-    desc.allocator = _prev_activator;
-}
-
-#define CONSTRUCTOR_PARTIAL_SPEC_IMPL(tmpl_decl, spec_args, ctor_args) \
-template<int ID> \
-template<class T> \
-tmpl_decl \
-context<ID>::component<T>::constructor<A1, spec_args>::constructor() { \
-    component_descriptor& desc = registry()[id_of<T>::id()]; \
-    _prev = desc.constructor; \
-    desc.constructor = new activator(); \
-} \
- \
-template<int ID> \
-template<class T> \
-tmpl_decl \
-context<ID>::component<T>::constructor<A1, spec_args>::~constructor() { \
-    component_descriptor& desc = registry()[id_of<T>::id()]; \
-    desc.constructor = _prev; \
-} \
- \
-template<int ID> \
-template<class T> \
-tmpl_decl \
-typename context<ID>::unknown_ptr \
-context<ID>::component<T>::constructor<A1, spec_args>::activator:: \
-activate(unknown_ptr instance) { \
-    T* activated = reinterpret_cast<T*>(instance.get()); \
-    new(activated) T( \
-        ctor_args \
-    ); \
-    return instance; \
-}
-
-// a little trick from http://ingomueller.net/node/1203#comment-599
-#define KO ,
-
-CONSTRUCTOR_PARTIAL_SPEC_IMPL(
-    // tmpl_decl
-    template<
-        class A1
-    >,
-    // spec_args
-    void KO void KO void KO void KO void KO void KO void KO void KO void,
-    // ctor_args
-    context<>::injected<A1>()
-)
-
-CONSTRUCTOR_PARTIAL_SPEC_IMPL(
-    // tmpl_decl
-    template<
-        class A1 KO
-        class A2
-    >,
-    // spec_args
-    A2 KO void KO void KO void KO void KO void KO void KO void KO void,
-    // ctor_args
-    context<>::injected<A1>() KO
-    context<>::injected<A2>()
-)
-
-CONSTRUCTOR_PARTIAL_SPEC_IMPL(
-    // tmpl_decl
-    template<
-        class A1 KO
-        class A2 KO
-        class A3
-    >,
-    // spec_args
-    A2 KO A3 KO void KO void KO void KO void KO void KO void KO void,
-    // ctor_args
-    context<>::injected<A1>() KO
-    context<>::injected<A2>() KO
-    context<>::injected<A3>()
-)
-
-CONSTRUCTOR_PARTIAL_SPEC_IMPL(
-    // tmpl_decl
-    template<
-        class A1 KO
-        class A2 KO
-        class A3 KO
-        class A4
-    >,
-    // spec_args
-    A2 KO A3 KO A4 KO void KO void KO void KO void KO void KO void,
-    // ctor_args
-    context<>::injected<A1>() KO
-    context<>::injected<A2>() KO
-    context<>::injected<A3>() KO
-    context<>::injected<A4>()
-)
-
-CONSTRUCTOR_PARTIAL_SPEC_IMPL(
-    // tmpl_decl
-    template<
-        class A1 KO
-        class A2 KO
-        class A3 KO
-        class A4 KO
-        class A5
-    >,
-    // spec_args
-    A2 KO A3 KO A4 KO A5 KO void KO void KO void KO void KO void,
-    // ctor_args
-    context<>::injected<A1>() KO
-    context<>::injected<A2>() KO
-    context<>::injected<A3>() KO
-    context<>::injected<A4>() KO
-    context<>::injected<A5>()
-)
-
-CONSTRUCTOR_PARTIAL_SPEC_IMPL(
-    // tmpl_decl
-    template<
-        class A1 KO
-        class A2 KO
-        class A3 KO
-        class A4 KO
-        class A5 KO
-        class A6
-    >,
-    // spec_args
-    A2 KO A3 KO A4 KO A5 KO A6 KO void KO void KO void KO void,
-    // ctor_args
-    context<>::injected<A1>() KO
-    context<>::injected<A2>() KO
-    context<>::injected<A3>() KO
-    context<>::injected<A4>() KO
-    context<>::injected<A5>() KO
-    context<>::injected<A6>()
-)
-
-CONSTRUCTOR_PARTIAL_SPEC_IMPL(
-    // tmpl_decl
-    template<
-        class A1 KO
-        class A2 KO
-        class A3 KO
-        class A4 KO
-        class A5 KO
-        class A6 KO
-        class A7
-    >,
-    // spec_args
-    A2 KO A3 KO A4 KO A5 KO A6 KO A7 KO void KO void KO void,
-    // ctor_args
-    context<>::injected<A1>() KO
-    context<>::injected<A2>() KO
-    context<>::injected<A3>() KO
-    context<>::injected<A4>() KO
-    context<>::injected<A5>() KO
-    context<>::injected<A6>() KO
-    context<>::injected<A7>()
-)
-
-CONSTRUCTOR_PARTIAL_SPEC_IMPL(
-    // tmpl_decl
-    template<
-        class A1 KO
-        class A2 KO
-        class A3 KO
-        class A4 KO
-        class A5 KO
-        class A6 KO
-        class A7 KO
-        class A8
-    >,
-    // spec_args
-    A2 KO A3 KO A4 KO A5 KO A6 KO A7 KO A8 KO void KO void,
-    // ctor_args
-    context<>::injected<A1>() KO
-    context<>::injected<A2>() KO
-    context<>::injected<A3>() KO
-    context<>::injected<A4>() KO
-    context<>::injected<A5>() KO
-    context<>::injected<A6>() KO
-    context<>::injected<A7>() KO
-    context<>::injected<A8>()
-)
-
-CONSTRUCTOR_PARTIAL_SPEC_IMPL(
-    // tmpl_decl
-    template<
-        class A1 KO
-        class A2 KO
-        class A3 KO
-        class A4 KO
-        class A5 KO
-        class A6 KO
-        class A7 KO
-        class A8 KO
-        class A9
-    >,
-    // spec_args
-    A2 KO A3 KO A4 KO A5 KO A6 KO A7 KO A8 KO A9 KO void,
-    // ctor_args
-    context<>::injected<A1>() KO
-    context<>::injected<A2>() KO
-    context<>::injected<A3>() KO
-    context<>::injected<A4>() KO
-    context<>::injected<A5>() KO
-    context<>::injected<A6>() KO
-    context<>::injected<A7>() KO
-    context<>::injected<A8>() KO
-    context<>::injected<A9>()
-)
-
-CONSTRUCTOR_PARTIAL_SPEC_IMPL(
-    // tmpl_decl
-    template<
-        class A1 KO
-        class A2 KO
-        class A3 KO
-        class A4 KO
-        class A5 KO
-        class A6 KO
-        class A7 KO
-        class A8 KO
-        class A9 KO
-        class A10
-    >,
-    // spec_args
-    A2 KO A3 KO A4 KO A5 KO A6 KO A7 KO A8 KO A9 KO A10,
-    // ctor_args
-    context<>::injected<A1>() KO
-    context<>::injected<A2>() KO
-    context<>::injected<A3>() KO
-    context<>::injected<A4>() KO
-    context<>::injected<A5>() KO
-    context<>::injected<A6>() KO
-    context<>::injected<A7>() KO
-    context<>::injected<A8>() KO
-    context<>::injected<A9>() KO
-    context<>::injected<A10>()
-)
-
-#undef KO
-#undef CONSTRUCTOR_PARTIAL_SPEC_IMPL
-
 } // namespace inject
+
+#include "component.inl"
 
 #endif // __INJECT_COMPONENT_H__

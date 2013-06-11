@@ -28,6 +28,13 @@
 
 namespace inject {
 
+/**
+ * describes a scoped binding between two components
+ *
+ * components are bound with the 'provides' operator - so a component A is bound
+ * to component B in scope S means that component B provides component A in that
+ * scope
+ */
 class binding {
 private:
     unique_id _what; 
@@ -39,6 +46,11 @@ public:
         _to(INVALID_ID),
         _scope(scope_none) { }
 
+    /**
+     * @param what what to bind
+     * @param to whom to bind to
+     * @param scope in which scope to bind
+     */
     binding(unique_id what, unique_id to, component_scope scope) :
         _what(what), _to(to), _scope(scope) { }
 
@@ -46,8 +58,11 @@ public:
 
 public:
 
+    /** @return what is bound */
     unique_id what() const { return _what; }
+    /** @return to whom it is bound */
     unique_id to() const { return _to; }
+    /** @return in which scope is it bound */
     component_scope scope() const { return _scope; }
 };
 

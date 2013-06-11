@@ -20,47 +20,24 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef __INJECT_ID_OF_H__
-#define __INJECT_ID_OF_H__
-
-#include "types.h"
+#ifndef __INJECT_ID_OF_INL__
+#define __INJECT_ID_OF_INL__
 
 namespace inject {
 
-/** an invalid unique id - doesn't identiify any component */
-const unique_id INVALID_ID = -1;
+template<typename T>
+unique_id monotonic_counter<T>::next_unique_id() {
+    static unique_id unique_id_counter = 0;
+    return unique_id_counter++;
+}
 
-/**
- * a monotonic counter
- * @tparam T ignored, used as a workaround to avoid the need for a compiled cpp file
- * @note this class is not thread safe
- */
-template<typename T = void>
-class monotonic_counter {
-public:
-    /** @return a monotonically increasing integer */
-    static unique_id next_unique_id();
-};
-
-/**
- * provides a way of uniquely identifying types in the system
- * @tparam T type to get id of
- *
- * Example
- * @code
- * unique_id the_id = inject::id_of<some_component>::id();
- * @endcode
- */
 template<class T>
-class id_of {
-public:
-    /** @return the unique identifier of <code>T</code> */
-    static unique_id id();
-};
+unique_id id_of<T>::id() {
+    static unique_id i = monotonic_counter<>::next_unique_id();
+    return i;
+}
 
 } // namespace inject
 
-#include "id_of.inl"
-
-#endif // __INJECT_ID_OF_H__
+#endif // __INJECT_ID_OF_INL__
 

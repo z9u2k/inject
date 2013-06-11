@@ -51,7 +51,7 @@ impl_provides_decl;
 context<>::component<service>::implemented_by<impl>
 service_impl_decl;
 
-// this is not a component
+// this is not a component - will be used manually
 class test_impl : public service {
     virtual const string name() const {
         return "test_impl";

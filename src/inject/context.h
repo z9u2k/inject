@@ -41,6 +41,16 @@
 
 namespace inject {
 
+/**
+ * an injection context. the context manages instance creation, initialization
+ * and injection processes. the context knows about all available components,
+ * they provisions and how they are implemented.
+ *
+ * @tparam ID used to support multiple injection contexts in the same
+ *         application
+ *
+ * @todo explain about the current context stack
+ */
 template<int ID = 0>
 class context {
 private: // classes
@@ -70,8 +80,14 @@ public: // classes
     template<class T>
     class injected;
 public: // component pointer type
+    /**
+     * abstracts the actual pointer used, in case we want to change it sometime
+     * in the future
+     * @todo C++11 std::shared_ptr if available ?
+     */
     template<class T>
     struct ptr {
+        /** the pointer type */
         typedef boost::shared_ptr<T> type;
     };
 private: // types
@@ -93,28 +109,54 @@ private: // disallow copy-ctor and assogn operator
         return *this;
     }
 public: // constructors
+    /** constructs an empty context, with no components */
     context() { init(); }
+    /** @param config a source of initial component bindings */
     context(context_config& config);
     virtual ~context();
 public: // methods
 
+    /**
+     * configures the context with the given bindings
+     * @param config component binding source
+     */
     void configure(context_config& config);
 
+    /**
+     * binds a type as its own implementation
+     * @tparam Impl implementation type
+     */
     template<class Impl>
     void bind() {
         bind<Impl, Impl, scope_none>();
     }
     
+    /**
+     * binds a type as its own implementation in the given scope
+     * @tparam Impl implementation type
+     * @tparam Scope binding scope
+     */
     template<class Impl, component_scope Scope>
     void bind() {
         bind<Impl, Impl, Scope>();
     }
     
+    /**
+     * binds a type as the implementation of an interface
+     * @tparam Interface implemented interface
+     * @tparam Impl implementation type
+     */
     template<class Interface, class Impl>
     void bind() {
         bind<Interface, Impl, scope_none>();
     }
 
+    /**
+     * binds a type as the implementation of an interface in the given scope
+     * @tparam Interface implemented interface
+     * @tparam Impl implementation type
+     * @tparam Scope binding scope
+     */
     template<class Interface, class Impl, component_scope Scope>
     void bind() {
         _bindings[id_of<Interface>::id()] = binding(
@@ -123,14 +165,29 @@ public: // methods
             Scope);
     }
 
+    /**
+     * binds a type as its own implementation
+     * @param name component to bind
+     */
     void bind(const std::string& name) {
         bind(name, name);
     }
 
+    /**
+     * binds a type as the implementation of an interface
+     * @param what name of implementation
+     * @param to name of implemented interface
+     */
     void bind(const std::string& what, const std::string& to) {
         bind(what, to, scope_none);
     }
 
+    /**
+     * binds a type as the implementation of an interface in the given scope
+     * @param what name of implementation
+     * @param to name of implemented interface
+     * @param scope binding scope
+     */
     void bind(const std::string& what, const std::string& to,
             component_scope scope) {
         unique_id what_id = registry()[what].id;
@@ -138,6 +195,16 @@ public: // methods
         _bindings[what_id] = binding(what_id, to_id, scope);
     }
 
+    /**
+     * obtains a pointer to an instance that is registered as the implementation
+     * of the given interface
+     * @return pointer to implementing instance
+     * @tparam Interface type to obtain pointer to
+     * @throws no_component
+     * @throws no_binding
+     * @throws not_providing
+     * @throws circular_dependency
+     */
     template<class Interface>
     typename ptr<Interface>::type instance();
 
@@ -145,6 +212,7 @@ private:
     unknown_ptr instantiate(component_descriptor& desc);
 
 public: // static methods
+    /** @return reference to current context */
     static context<ID>& get_current();
 private: // context list, components registry
     static context<ID>*& head();
@@ -212,6 +280,7 @@ public:
      *
      * @param ptr Pointer to cast. Must be of the correct type, otherwise a
      *        <code>bad_cast</code> exception will be thrown.
+     * @return cast pointer
      * @throws bad_cast If the given pointer is not a valid pointer, or doesn't
      *         point to the expected type
      */
@@ -242,31 +311,15 @@ public:
 
 public:
 
-    /**
-     * @see generic_component_cast::cast(const unknown_ptr)
-     */
     unknown_ptr cast(unknown_ptr instance);
 };
 
-template<int ID>
-template<class From, class To>
-typename context<ID>::unknown_ptr context<ID>::component_cast<From, To>::cast(unknown_ptr instance) {
-
-    // TODO: validate that given pointer instance if a From, and throw bad_cast
-    // if not
-
-    // for when there's multiple inheritance in the implementing class, a static
-    // cast from the implementation to the base is a must - this will also make
-    // sure that classes declared as providing a component actually inherit that
-    // component (a check done at compile time)
-    return
-        boost::static_pointer_cast<unknown_component>(
-            boost::static_pointer_cast<To>(
-                boost::static_pointer_cast<From>(instance)));
-}
-
 /**
- * TODO
+ * A (non-template) base class for all activators. an activator is part of a
+ * chain, that prepares an instance.
+ *
+ * activating a type means executing, in order, the chain of its activators
+ * (which may allocate, construct or inject dependencies)
  */
 template<int ID>
 class context<ID>::generic_activator {
@@ -276,9 +329,19 @@ public:
     generic_activator() : _next(0) { }
     virtual ~generic_activator() { }
 public:
+    /**
+     * activate the given instance, performing some part of the initialization
+     * process.
+     *
+     * @param instance instance to activate
+     * @return instance to pass to next activator
+     */
     virtual unknown_ptr activate(unknown_ptr instance) = 0;
 
+    /** @return next activator in activation chain */
     const generic_activator* next() const { return _next; }
+    
+    /** @return next activator in activation chain */
     generic_activator*& next() { return _next; }
 };
 
@@ -319,9 +382,18 @@ public:
     /** component id */
     unique_id id;
 
-    /** component activator */
+    /** mandatory activator which allocates an uninitialized instance */
     generic_activator* allocator;
+
+    /**
+     * mandatory activator which initializes an allocated instance using one of
+     * its constructors
+     */
     generic_activator* constructor;
+
+    /**
+     * first non-mandatory activator (may be null)
+     */
     generic_activator* first_activator;
 
     /** component's name */
@@ -343,21 +415,13 @@ public:
 
 public:
 
+    /**
+     * appends an activator to the end of the activation chain
+     * @param activator activator to append
+     */
     void append_activator(generic_activator* activator);
 
 };
-
-template<int ID>
-void context<ID>::component_descriptor::
-append_activator(generic_activator* activator) {
-    if (first_activator == 0) {
-        first_activator = activator;
-    } else {
-        last_activator->next() = activator;
-    }
-        
-    last_activator = activator;
-}
 
 /**
  * The centralized components registry
@@ -430,218 +494,8 @@ public:
     void unregister(unique_id component_id);
 };
 
-template<int ID>
-typename context<ID>::component_descriptor&
-context<ID>::components_registry::operator[](unique_id component_id) {
-    return _descriptors[component_id];
-}
-
-template<int ID>
-typename context<ID>::component_descriptor&
-context<ID>::components_registry::operator[](const std::string& name) {
-    name_to_id_map::iterator iter = _names.find(name);
-    if (iter == _names.end()) {
-        throw no_component(name);
-    }
-
-    return operator[](iter->second);
-}
-    
-template<int ID>
-void context<ID>::components_registry::unregister(unique_id component_id) {
-    component_descriptor& desc = _descriptors[component_id];
-    if (desc.id != INVALID_ID) {
-        _names.erase(desc.component_name);
-        _descriptors.erase(component_id);
-    }
-}
-    
-template<int ID>
-void context<ID>::components_registry::
-register_name(const std::string& name, unique_id component_id) {
-    _names[name] = component_id;
-}
-
-template<int ID>
-context<ID>*& context<ID>::current() {
-    static context<ID>* _current = 0;
-    return _current;
-}
-
-template<int ID>
-context<ID>& context<ID>::get_current() {
-    static context<ID> _global;
-    return (*current());
-}
-
-template<int ID>    
-context<ID>*& context<ID>::head() {
-    static context<ID>* _head = 0;
-    return _head;
-}
-    
-template<int ID>    
-typename context<ID>::components_registry& context<ID>::registry() {
-    static components_registry _registry;
-    return _registry;
-}
-
-template<int ID>    
-context<ID>::~context() {
-    // pop <this> from stack
-    context<ID>::head() = _parent;
-    context<ID>::current() = _parent;
-}
-
-template<int ID>
-context<ID>::context(context_config& config) {
-    configure(config);
-    init();
-}
-
-template<int ID>
-void context<ID>::init() {
-    // push <this> to stack and make current
-    _parent = head();
-    context<ID>::head() = this;
-    context<ID>::current() = this;
-}
-
-template<int ID>
-void context<ID>::configure(context_config& config) {
-    context_config::context_bindings m = config.bindings();
-
-    for (context_config::context_bindings::iterator i = m.begin() ;
-            i != m.end() ; ++i) {
-        bind(i->what(), i->to(), i->scope());
-    }
-}
-
-template<int ID>
-template<class Interface>
-typename context<ID>::template ptr<Interface>::type context<ID>::instance() {
-    return boost::static_pointer_cast<Interface>(
-        instance(id_of<Interface>::id()));
-}
-
-template<int ID>
-binding context<ID>::find_binding(unique_id interface_id) {
-    bindings_map::iterator bind_iter = _bindings.find(interface_id);
-    if (bind_iter == _bindings.end()) {
-        if (_parent != 0) {
-            return _parent->find_binding(interface_id);
-        } else {
-            component_descriptor& desc =
-                registry()[interface_id];
-
-            if (desc.default_binding.what() == interface_id) {
-                return desc.default_binding;
-            } else if (desc.id == INVALID_ID) {
-                throw no_component(interface_id);
-            } else {
-                throw no_binding(interface_id);
-            }
-        }
-    }
-
-    return bind_iter->second;
-}
-
-template<int ID>
-typename context<ID>::unknown_ptr
-context<ID>::instance(unique_id interface_id) {
-
-    const binding& bind = find_binding(interface_id);
-    component_descriptor& desc = registry()[bind.to()];
-
-    if (desc.id == INVALID_ID) {
-        throw no_binding(interface_id);
-    }
-    
-    if (desc.allocator == 0) {
-        throw not_providing(desc.id, interface_id);
-    }
-    
-    unknown_ptr instance;
-    typename instances_map::iterator iter;
-
-    // save current "current" context, and set <this> to the current context,
-    // so injected fields will use the context that's being used for
-    // instantiation and not some other unrelated context
-    context<ID>* backup_current = context<ID>::current();
-    context<ID>::current() = this;
-
-    // activate instace
-    switch (bind.scope()) {
-    case scope_none:
-        instance = instantiate(desc);
-        break;
-
-    case scope_singleton:
-        iter = _singletons.find(bind.to());
-        if (iter == _singletons.end()) {
-            instance = instantiate(desc);
-            // TODO: register singletons in global context? may cause having
-            // multiple instances in different scopes, or scoping cannot be done
-            // per-context. (same component can be a singleton in one context,
-            // and non-scoped in another...)
-            //
-            // maybe use local binding for scope resolution, but provide
-            // singleton from global context?
-            _singletons[bind.to()] = instance;
-        } else {
-            instance = iter->second;
-        }
-        break;
-
-    default:
-        break;
-    }
-
-    // find cast provider
-    typename component_descriptor::component_cast_map::iterator cast_iter = 
-        desc.component_cast.find(interface_id);
-
-    if (cast_iter == desc.component_cast.end()) {
-        // TODO: a component that doesn provide that interface was bound to it,
-        //       can this even compile? binding should try and create a cast
-        //       provider, and this should fail compilation...
-    }
-    
-    // restor current
-    context<ID>::current() = backup_current;
-
-    return cast_iter->second->cast(instance);
-}
-    
-template<int ID>
-typename context<ID>::unknown_ptr
-context<ID>::instantiate(component_descriptor& desc) {
-    try {
-        if (desc.activating) {
-            throw circular_dependency(desc.id);
-        }
-
-        desc.activating = true;
-
-        unknown_ptr p = desc.allocator->activate(unknown_ptr());
-        p = desc.constructor->activate(p);
-
-        generic_activator* current = desc.first_activator;
-        while (current != 0) {
-            p = current->activate(p);
-            current = current->next();
-        }
-
-        desc.activating = false;
-    
-        return p;
-    } catch (...) {
-        desc.activating = false;
-        throw;
-    }
-}
-    
 } // namespace inject
+
+#include "context.inl"
 
 #endif // __INJECT_CONTEXT_H__

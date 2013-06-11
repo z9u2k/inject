@@ -28,6 +28,11 @@ Inject is intended to be a C++ dependency injection library which:
  * does not use RTTI
  * is fully C++98 complaint
 
+USAGE & DOCUMENTATION
+=====================
+- See: examples/README for code examples
+- Doxygen: http://www.duvdevani.com/itay/projects/inject/doxygen/
+
 BUILDING
 ========
 Inject is a header-only library, which means it does not require building. Just
@@ -50,11 +55,6 @@ Inject was tested with:
 - g++ 4.7.1
 - clang++ 3.0-6
 - MSVC 9 and 10
-
-USAGE
-=====
-First read: docs/README for an overview of how Inject works.
-Then, See: examples/README for usage examples.
 
 OTHER C++ INJECTION LIBRARIES
 =============================

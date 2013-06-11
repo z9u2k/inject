@@ -32,5 +32,6 @@
 #include "id_of.h"
 #include "injected.h"
 #include "types.h"
+#include "activator.h"
 
 #endif // __INJECT_INJECTED_H__

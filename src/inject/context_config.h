@@ -32,26 +32,72 @@
 
 namespace inject {
 
+/**
+ * an interface used to configure a context binding. this can be used to load
+ * bindings from a file, or any other source, without declaring component
+ * implementation inside the code.
+ *
+ * note that this onle serves to replace
+ * {@link context::component::implemented_by} declaration. components must still
+ * be registered with the context, with correct allocators, constructors,
+ * setters and provision dclarations.
+ *
+ * this class binds compoenent by name, so any component that should be
+ * configured externally, should be decaled with the constructor that provides a
+ * name in {@link context::component} declaration
+ *
+ * Example which loads bindings from a configuration file:
+ *
+ * <code>bind1.conf</code>
+ * @include bind_from_file/bind1.conf
+ *
+ * <code>bind2.conf</code>
+ * @include bind_from_file/bind2.conf
+ *
+ * <code>main.cpp</code>
+ * @include bind_from_file/main.cpp
+ *
+ * Output:
+ * <pre>
+ * after loading bind1.conf, 'service' is implemeneted by service_impl1 (binding is not a singleton)
+ * after (re)loading bind2.conf, 'service' is implemeneted by service_impl2 (binding is a singleton)
+ * </pre>
+ */
 class context_config {
 public:
+    /**
+     * a binding configuration entry
+     */
     class config_bind {
     private:
         std::string _what;
         std::string _to;
         component_scope _scope;
     public:
+        /**
+         * @param what component to bind
+         * @param to component to bind to
+         * @param scope bind scope
+         */
         config_bind(const std::string& what,
                 const std::string& to,
                 component_scope scope) :
             _what(what), _to(to), _scope(scope) { }
     public:
+        /** @return name of component name to bind */
         const std::string what() const { return _what; }
+        /** @return name of component name to bind to */
         const std::string to() const { return _to; }
+        /** @return binding scope */
         const component_scope scope() const { return _scope; }
     };
 public:
+    /** list of bindings */
     typedef std::list<config_bind> context_bindings;
 public:
+    /**
+     * @return list of binding-by-name
+     */
     virtual context_bindings bindings() = 0;
 };
 
