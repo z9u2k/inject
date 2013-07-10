@@ -37,6 +37,8 @@ USAGE & DOCUMENTATION
 QUICK REFERENCE
 ===============
 
+[All procedural snippets assume ctx is a context instance]
+
 Register a new component (mandatory for everything else)
 --------------------------------------------------------
   Declarative:
@@ -72,7 +74,11 @@ Select implementing component to use when component is requested
     context<>::component<T>::implemented_by<S[, Scope]> impl_decl;
   
   Procedural:
-    TBD
+    /* bind T as S implementation */
+    ctx.bind<T, S[, Scope]>();
+    or
+    /* bind T as its own implementation */
+    ctx.bind<T[, Scope]>(); 
 
   Where:
     T     - typename of component implemented
@@ -87,7 +93,7 @@ Request an instance of a component
     context<>::injected<T> p;
 
   Procedural:
-    context<>::ptr<T>::type p = context<>::get_current().instance<T>();
+    context<>::ptr<T>::type p = ctx.instance<T>();
   
   Where:
     T - typename of component to get instance of
