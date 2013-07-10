@@ -30,8 +30,122 @@ Inject is intended to be a C++ dependency injection library which:
 
 USAGE & DOCUMENTATION
 =====================
-- See: examples/README for code examples
-- Doxygen: http://www.duvdevani.com/itay/projects/inject/doxygen/
+- start with the quick reference below
+- see: examples/README for code examples
+- doxygen: http://www.duvdevani.com/itay/projects/inject/doxygen/
+
+QUICK REFERENCE
+===============
+
+Register a new component (mandatory for everything else)
+--------------------------------------------------------
+  Declarative:
+    context<>::component<T> comp_decl;
+    or:
+    context<>::component<T> comp_decl("component_name");
+
+  Procedural:
+    TBD
+    
+  Where:
+    T - typename of component
+
+Register a component as implementing another component
+------------------------------------------------------
+
+  Declarative:
+    context<>::component<T>::provides<S> impls_decl;
+  
+  Procedural:
+    TBD
+
+  Where:
+    T - typename of implementing component
+    S - typename of component implemented
+
+Select implementing component to use when component is requested
+----------------------------------------------------------------
+  
+  [implementing component must be declared as such (see above)]
+
+  Declarative:
+    context<>::component<T>::implemented_by<S[, Scope]> impl_decl;
+  
+  Procedural:
+    TBD
+
+  Where:
+    T     - typename of component implemented
+    S     - typename of implementation component
+    Scope - (optional) implementation scope, one of: scope_none (new instance
+            every time - default) and scope_singleton (same instance every time)
+
+Request an instance of a component
+----------------------------------
+
+  Declarative:
+    context<>::injected<T> p;
+
+  Procedural:
+    context<>::ptr<T>::type p = context<>::get_current().instance<T>();
+  
+  Where:
+    T - typename of component to get instance of
+
+Allocate (and deallocate) a component using a custom allocator
+--------------------------------------------------------------
+
+  Declarative:
+    context<>::component<T>::allocator< MyAllocator<T> > alloc_decl;
+
+  Procedural:
+    TBD
+  
+  Where:
+    T - typename of component to set allocator for
+
+Instantiate a component with a specific constructor
+---------------------------------------------------
+
+  Declarative:
+    context<>::component<T>::constructor<A1[, A2 ... A10]> ctor_decl;
+
+  Procedural:
+    TBD
+  
+  Where:
+    T       - typename of component
+    A1..A10 - typename of components in constructor declaration
+
+Inject a component to a C++-style setter during component initialization
+------------------------------------------------------------------------
+
+  Declarative:
+    context<>::component<T>::assign_setter<S, &T::setter> setter_decl;
+
+  Procedural:
+    TBD
+  
+  Where:
+    T      - typename of component with setter
+    S      - typename of component to inject
+    setter - public, non-static method in T with the non-const signature:
+             context<>::ptr<S>::type& setter();
+
+Inject a component to a Java-style setter during component initialization
+-------------------------------------------------------------------------
+
+  Declarative:
+    context<>::component<T>::arg_setter<S, &T::setter> setter_decl;
+
+  Procedural:
+    TBD
+  
+  Where:
+    T      - typename of component with setter
+    S      - typename of component to inject
+    setter - public, non-static method in T with the non-const signature:
+             void setter(const context<>::ptr<S>::type& s);
 
 BUILDING
 ========
@@ -48,6 +162,10 @@ To build the unit-tests and example code:
 Unit-tests executable is under: src/tests/inject/unit_tests
 Example executable is under each example directory.
 
+If you have Doxygen installed, you can run 'make doc' at the root folder to
+generate the API documentation. it should generate to the doxygen/
+subfolder.
+
 COMPATIBILITY
 =============
 
@@ -55,6 +173,17 @@ Inject was tested with:
 - g++ 4.7.1
 - clang++ 3.0-6
 - MSVC 9 and 10
+
+TODO
+====
+ * Use std::shared_ptr<> when C++11 is available
+ * Use vardiac templates for constructor handling if C++11 is available
+ * Implicit component registration if possible (infer from functional
+   declarations)
+ * thread-safe singletons (with boost or C++11 STL if available)
+ * Implicit cast from ptr<S>::type so it could be assigned to straight setter
+   (i.e. S& setter() and void setter(const S& s), without ptr<S>::type wrapper)
+ * Test with XCode
 
 OTHER C++ INJECTION LIBRARIES
 =============================
@@ -68,7 +197,7 @@ OTHER C++ INJECTION LIBRARIES
 
 LICENSE
 =======
-Copyright (c) 2012 Itay Duvdevani
+Copyright (c) 2012-2013 Itay Duvdevani
 All rights reserved.
 
 Inject is distributed under the MIT OSI license. For additional info, please
