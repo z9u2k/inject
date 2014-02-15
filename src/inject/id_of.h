@@ -31,18 +31,6 @@ namespace inject {
 const unique_id INVALID_ID = -1;
 
 /**
- * a monotonic counter
- * @tparam T ignored, used as a workaround to avoid the need for a compiled cpp file
- * @note this class is not thread safe
- */
-template<typename T = void>
-class monotonic_counter {
-public:
-    /** @return a monotonically increasing integer */
-    static unique_id next_unique_id();
-};
-
-/**
  * provides a way of uniquely identifying types in the system
  * @tparam T type to get id of
  *

@@ -25,7 +25,7 @@
 
 namespace inject {
 
-typedef int unique_id;
+typedef unsigned long int unique_id;
 typedef void unknown_component;
 
 enum component_scope {
