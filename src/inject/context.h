@@ -28,6 +28,7 @@
 #include <string>
 #include <memory>
 #include <map>
+#include <list>
 
 #include <boost/shared_ptr.hpp>
 
@@ -358,24 +359,21 @@ public:
     /** map target component to appropriate case provider */
     typedef std::map<unique_id, generic_component_cast*> component_cast_map;
     
+    /** list of activators */
+    typedef std::list<generic_activator*> activators_list;
+
     /* --- Constructor --- */
 
 public:
 
     /** initialize component with an invalid id */
     component_descriptor() :
-        last_activator(0),
         id(INVALID_ID),
         allocator(0),
         constructor(0),
-        first_activator(0),
         activating(false) { }
 
     /* --- Fields --- */
-
-private:
-
-    generic_activator* last_activator;
 
 public:
 
@@ -392,9 +390,9 @@ public:
     generic_activator* constructor;
 
     /**
-     * first non-mandatory activator (may be null)
+     * optional activators list
      */
-    generic_activator* first_activator;
+    activators_list activators;
 
     /** component's name */
     std::string component_name;
@@ -410,17 +408,6 @@ public:
 
     /** whether descriptor is currently being activated */
     bool activating;
-
-    /* --- Methods --- */
-
-public:
-
-    /**
-     * appends an activator to the end of the activation chain
-     * @param activator activator to append
-     */
-    void append_activator(generic_activator* activator);
-
 };
 
 /**

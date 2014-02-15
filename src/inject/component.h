@@ -329,7 +329,7 @@ public:
     public:
         assign_setter() {
             component_descriptor& desc = registry()[id_of<T>::id()];
-            desc.append_activator(new activator());
+            desc.activators.push_back(new activator());
         }
     };
 
@@ -366,7 +366,7 @@ public:
     public:
         arg_setter() {
             component_descriptor& desc = registry()[id_of<T>::id()];
-            desc.append_activator(new activator());
+            desc.activators.push_back(new activator());
         }
     };
 };

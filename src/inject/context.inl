@@ -43,18 +43,6 @@ typename context<ID>::unknown_ptr context<ID>::component_cast<From, To>::cast(un
 }
 
 template<int ID>
-void context<ID>::component_descriptor::
-append_activator(generic_activator* activator) {
-    if (first_activator == 0) {
-        first_activator = activator;
-    } else {
-        last_activator->next() = activator;
-    }
-        
-    last_activator = activator;
-}
-
-template<int ID>
 typename context<ID>::component_descriptor&
 context<ID>::components_registry::operator[](unique_id component_id) {
     return _descriptors[component_id];
@@ -251,10 +239,11 @@ context<ID>::instantiate(component_descriptor& desc) {
         unknown_ptr p = desc.allocator->activate(unknown_ptr());
         p = desc.constructor->activate(p);
 
-        generic_activator* current = desc.first_activator;
-        while (current != 0) {
-            p = current->activate(p);
-            current = current->next();
+        for (typename component_descriptor::activators_list::iterator iter =
+                desc.activators.begin();
+                iter != desc.activators.end();
+                ++iter) {
+            p = (*iter)->activate(p);
         }
 
         desc.activating = false;
