@@ -102,8 +102,8 @@ private:
     unknown_ptr instance(unique_id interface_id);
     binding find_binding(unique_id interface_id);
     void init();
-private: // disallow copy-ctor and assogn operator
-    context(const context<ID>& other) : _parent(other.parent) { }
+private: // disallow copy-ctor and assign operator
+    context(const context<ID>& other) : _parent(other._parent) { }
     context<ID>& operator=(const context<ID>& other) {
         _parent = other._parent;
         return *this;
