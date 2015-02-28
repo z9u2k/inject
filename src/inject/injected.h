@@ -61,7 +61,7 @@ public:
      * @throws not_providing
      * @throws circular_dependency
      */
-    injected() : _ptr(context<ID>::get_current().instance<T>()) { }
+    injected() : _ptr(context<ID>::get_current().template instance<T>()) { }
 
     /** @param other copy from */
     injected(const injected<T>& other) : _ptr(other._ptr) { }
