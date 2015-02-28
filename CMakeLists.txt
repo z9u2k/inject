@@ -1,8 +1,9 @@
 cmake_minimum_required(VERSION 2.6)
 project(INJECT)
 
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -ansi -pedantic -std=c++98 -O0")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_DEBUG} -Wall -ansi -pedantic -std=c++98 -O2 -DNDEBUG")
+set(CXX_COMMON_FLAGS "-Wall -ansi -pedantic -std=c++98")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${CXX_COMMON_FLAGS} -O0")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CXX_COMMON_FLAGS} -O2 -DNDEBUG")
 
 FIND_PACKAGE(Boost)
 IF (Boost_FOUND)
