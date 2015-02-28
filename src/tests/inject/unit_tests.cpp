@@ -937,4 +937,44 @@ BOOST_AUTO_TEST_CASE(test_inject_multi_arg_setter)
     BOOST_CHECK_EQUAL(p->ptr2()->id(), id_of<impl1>::id());
 }
 
+class variable {
+public:
+  int value;
+};
+
+class snapshot {
+public:
+  context<>::injected<variable> target;
+  int value;
+
+  snapshot() {
+    value = target->value;
+  }
+};
+
+BOOST_AUTO_TEST_CASE(test_lazy_inject)
+{
+  context<> c;
+
+  context<>::component<variable> v0;
+  context<>::component<variable>::provides<variable> v1;
+  c.bind<variable, scope_singleton>();
+  
+  context<>::component<snapshot> s0;
+  context<>::component<snapshot>::provides<snapshot> s1;
+  c.bind<snapshot>();
+
+  context<>::injected<variable> var;
+
+  var->value = 0xcc;
+
+  context<>::injected<snapshot> immediate_snapshot;
+  context<>::injected<snapshot> lazy_snapshot(lazy);
+  
+  var->value = 0xdd;
+    
+  BOOST_CHECK_EQUAL(immediate_snapshot->value, 0xcc);
+  BOOST_CHECK_EQUAL(lazy_snapshot->value, 0xdd);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

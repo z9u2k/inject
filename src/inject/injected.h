@@ -28,6 +28,9 @@
 
 namespace inject {
 
+class lazy_type {};
+static lazy_type lazy;
+
 /**
  * obtains the component implementing <code>T</code> from the current context.
  * simply constructing this pointer-wrapper is enough to obtain the pointer.
@@ -63,6 +66,12 @@ public:
      */
     injected() : _ptr(context<ID>::get_current().template instance<T>()) { }
 
+    /**
+     * obtain component lazily - i.e., only the first time it is needed, and not
+     * at construction time.
+     */
+    injected(const lazy_type&) {}
+
     /** @param other copy from */
     injected(const injected<T>& other) : _ptr(other._ptr) { }
 
@@ -85,7 +94,7 @@ public:
      * @return whether wrapped pointer equals
      */
     bool operator==(const injected<T>& other) {
-        return _ptr == other._ptr;
+        return ptr() == other._ptr;
     }
 
     /**
@@ -97,25 +106,41 @@ public:
     }
 
     /** @return instance pointer by wrapper pointer */
-    T& operator*() const throw() { return (*_ptr); }
+    T& operator*() const throw() { return (*ptr()); }
 
     /** @return wrapper pointer */
-    T* operator->() const throw() { return _ptr.get(); }
+    T* operator->() const throw() { return ptr().get(); }
 
     /** @return wrapper pointer */
-    T* get() { return _ptr.get(); }
+    T* get() { return ptr().get(); }
 
     /** @return wrapper pointer */
-    const T* get() const { return _ptr.get(); }
+    const T* get() const { return ptr().get(); }
 
     /** @return implicit cast to wrapper pointer type */
     operator ptr_type() {
-        return _ptr;
+        return ptr();
     }
     
     /** @return implicit cast to wrapper pointer type */
     operator const ptr_type() const {
-        return _ptr;
+        return ptr();
+    }
+
+private:
+    ptr_type& ptr() {
+      if (_ptr.get() == 0) {
+        _ptr = context<ID>::get_current().template instance<T>();
+      }
+      return _ptr;
+    }
+
+    const ptr_type& ptr() const {
+      if (_ptr.get() == 0) {
+        *const_cast<ptr_type*>(&_ptr) =
+          context<ID>::get_current().template instance<T>();
+      }
+      return _ptr;
     }
 };
 

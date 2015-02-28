@@ -26,6 +26,8 @@ Inject is intended to be a C++ dependency injection library which:
  * supports up to 10 constructor arguments
  * can inject to setter methods (two types, see examples)
  * does not use RTTI
+ * has built-in support for lazy-injection (injection upon first usage as
+   opposed to construction time)
  * is fully C++98 complaint
 
 USAGE & DOCUMENTATION
@@ -90,7 +92,8 @@ Request an instance of a component
 ----------------------------------
 
   Declarative:
-    context<>::injected<T> p;
+    context<>::injected<T> p;       // inject at construction time
+    context<>::injected<T> p(lazy); // injected upon first usage
 
   Procedural:
     context<>::ptr<T>::type p = ctx.instance<T>();
