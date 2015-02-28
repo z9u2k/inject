@@ -23,9 +23,16 @@
 #ifndef __INJECT_ID_OF_H__
 #define __INJECT_ID_OF_H__
 
-#include "types.h"
+#include <cstddef>
 
 namespace inject {
+
+/**
+ * we use pointer arithmetics to identify types, to allow the same type to
+ * appear in two different dynamic modules without a collision. See comment
+ * inside monotonic_counter::next_unique_id for further details
+ */
+typedef std::ptrdiff_t unique_id;
 
 /** an invalid unique id - doesn't identiify any component */
 const unique_id INVALID_ID = -1;

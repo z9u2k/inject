@@ -20,7 +20,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#define BOOST_TEST_MODULE INJECT
+#define BOOST_TEST_MAIN
+#define BOOST_TEST_DYN_LINK
 
 #include <iostream>
 
@@ -31,22 +32,24 @@
 using namespace boost;
 using namespace inject;
 using namespace std;
+
+BOOST_AUTO_TEST_SUITE(Inject)
     
 class service {
 public:
-    virtual int id() = 0;
+    virtual unique_id id() = 0;
 };
 
 class impl1 : public service {
 public:
-    int id() {
+    unique_id id() {
         return id_of<impl1>::id();
     }
 };
 
 class impl2 : public service {
 public:
-    int id() {
+    unique_id id() {
         return id_of<impl2>::id();
     }
 };
@@ -934,3 +937,4 @@ BOOST_AUTO_TEST_CASE(test_inject_multi_arg_setter)
     BOOST_CHECK_EQUAL(p->ptr2()->id(), id_of<impl1>::id());
 }
 
+BOOST_AUTO_TEST_SUITE_END()

@@ -23,9 +23,9 @@
 #ifndef __INJECT_TYPES_H__
 #define __INJECT_TYPES_H__
 
+
 namespace inject {
 
-typedef unsigned long int unique_id;
 typedef void unknown_component;
 
 enum component_scope {
