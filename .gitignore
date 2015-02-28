@@ -12,3 +12,4 @@ examples/setter_inject/setter_inject
 examples/field_inject/field_inject
 doxygen
 Doxyfile
+build
