@@ -105,6 +105,9 @@ public:
     /** @return wrapper pointer */
     T* get() { return _ptr.get(); }
 
+    /** @return wrapper pointer */
+    const T* get() const { return _ptr.get(); }
+
     /** @return implicit cast to wrapper pointer type */
     operator ptr_type() {
         return _ptr;
